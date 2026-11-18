@@ -161,6 +161,11 @@ pre.inbox-verbatim{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monosp
 .inbox-form .inbox-note,.inbox-local-now .inbox-note{display:block;margin-top:12px}
 .inbox-flash{margin:0 0 12px;padding:8px 12px;border:1px solid var(--ink);border-radius:8px;font-size:13px;line-height:18px;font-weight:650}
 .inbox-local-now{padding:12px;border:1px solid var(--ink);border-radius:8px}
+.inbox-confirm{padding:12px;border:2px solid var(--ink);border-radius:8px}
+.inbox-confirm .what{font-size:15px;line-height:20px;font-weight:650}
+.inbox-confirm .why{white-space:pre-wrap}
+.inbox-confirm .inbox-note{display:block;margin-top:12px}
+.inbox-form>.eyebrow{margin-bottom:4px}
 .inbox-local-now .what{font-size:15px;line-height:20px;font-weight:650}
 .inbox-local-now .why{margin-top:4px;font-size:14px;line-height:20px;white-space:pre-wrap;overflow-wrap:anywhere}
 .inbox-fields{margin:0}
@@ -376,8 +381,8 @@ inboxEmpty:"队列已连接，当前没有任何件。",
 inboxCountOnly:"队列申报 {n} 件，但本快照没有携带明细，无法列出。",
 inboxCountMismatch:"队列申报 {n} 件，本快照携带明细 {m} 件",
 inboxDropped:"{n} 件缺少 queue_id 或编号重复，未列出",
-inboxSummary:"队列 {total} 件 · 待你决定 {todo} · 本地已记录待回写 {logged}",
-inboxTabTodo:"待决",inboxTabLogged:"本地已记录",inboxTabApproved:"已批准",inboxTabRejected:"已否决",inboxTabExecuted:"已执行",inboxTabUnknown:"状态未知",inboxTabAll:"全部",
+inboxSummary:"队列 {total} 件 · 待你决定 {todo} · 已记录待封印 {logged}",
+inboxTabTodo:"待决",inboxTabLogged:"已记录·待封印",inboxTabApproved:"已批准",inboxTabRejected:"已否决",inboxTabExecuted:"已执行",inboxTabUnknown:"状态未知",inboxTabAll:"全部",
 inboxTabEmpty:"「{tab}」下没有件。",
 inboxTodoDone:"没有待你决定的件。",
 inboxShowAll:"显示全部 {n} 件",inboxShowLess:"收起",
@@ -389,7 +394,9 @@ inboxEffectStructured:"结构化 effect（见详情）",
 inboxRequested:"提请",
 inboxRequestedMissing:"提请时间未记录",
 inboxActorMissing:"actor 未记录",
-inboxLocalLogged:"本地已记录：{a} · 未回写",
+inboxLocalLogged:"本地已记录：{a} · 待封印（未回写）",
+inboxSealAwaiting:"待封印 · 未回写",inboxSealMatch:"中枢已定 · 与本地记录一致（{s}）",inboxSealDiffer:"中枢已定 · 与本地记录不同（中枢：{s}）",inboxSealUnknown:"中枢状态未知 · 无法核对本地记录",
+inboxStepOf:"第 {n} 步，共 2 步",inboxConfirmTitle:"确认这项决定",inboxConfirmLead:"确认后将向本地日志追加以下记录；确认之前不会写入任何内容。",inboxConfirmBtn:"确认{a}并记入本地日志",inboxBack:"返回修改",inboxCAction:"动作",inboxCItem:"件",inboxCReason:"理由",inboxCBasis:"依据",inboxConfirmChanged:"此件内容在确认前已变化（内容哈希不同），本次没有记录。请复核后重新决定。",
 inboxLocalStale:"本地记录基于旧内容（内容哈希已变），需复核",
 inboxActApprove:"批准",inboxActReject:"否决",inboxActWithdraw:"撤回",
 inboxNotice:"决定记录于本地日志、经日志回写中枢确认队列。本页不直写任何源文件，也不表示决定已送达中枢。",
@@ -412,8 +419,8 @@ inboxSecDecision:"决定",
 inboxChoiceLabel:"批准或否决",
 inboxReasonLabel:"理由（必填）",
 inboxReasonPh:"写明理由。没有理由不能提交。",
-inboxHintBoth:"先选择批准或否决，并填写理由。",inboxHintChoice:"还需选择批准或否决。",inboxHintReason:"还需填写理由。",inboxHintReady:"将记入本地日志：{a}。",
-inboxSubmit:"记入本地日志",inboxSubmitA:"{a}并记入本地日志",
+inboxHintBoth:"先选择批准或否决，并填写理由。",inboxHintChoice:"还需选择批准或否决。",inboxHintReason:"还需填写理由。",inboxHintReady:"下一步核对后，才会把「{a}」记入本地日志。",
+inboxSubmit:"下一步：确认",inboxSubmitA:"下一步：确认{a}",
 inboxSaved:"已记入本地日志并回读确认。尚未回写中枢。",
 inboxSaveFailed:"写入本地日志失败（浏览器存储不可用或已满），这次决定没有被记录。",
 inboxDecidedHub:"中枢队列已有决定，不在此改写。",
@@ -457,8 +464,8 @@ inboxEmpty:"Queue connected. It currently holds no items.",
 inboxCountOnly:"The queue reports {n} items, but this snapshot carries no item details, so none can be listed.",
 inboxCountMismatch:"queue reports {n}, snapshot carries {m} item details",
 inboxDropped:"{n} items without a queue_id or with a duplicate id are not listed",
-inboxSummary:"{total} in queue · {todo} awaiting your decision · {logged} logged locally, awaiting write-back",
-inboxTabTodo:"Pending",inboxTabLogged:"Logged locally",inboxTabApproved:"Approved",inboxTabRejected:"Rejected",inboxTabExecuted:"Executed",inboxTabUnknown:"Unknown state",inboxTabAll:"All",
+inboxSummary:"{total} in queue · {todo} awaiting your decision · {logged} recorded, awaiting seal",
+inboxTabTodo:"Pending",inboxTabLogged:"Recorded · awaiting seal",inboxTabApproved:"Approved",inboxTabRejected:"Rejected",inboxTabExecuted:"Executed",inboxTabUnknown:"Unknown state",inboxTabAll:"All",
 inboxTabEmpty:"No items under \"{tab}\".",
 inboxTodoDone:"Nothing is awaiting your decision.",
 inboxShowAll:"Show all {n}",inboxShowLess:"Show fewer",
@@ -470,7 +477,9 @@ inboxEffectStructured:"Structured effect (see detail)",
 inboxRequested:"Requested",
 inboxRequestedMissing:"request time not recorded",
 inboxActorMissing:"actor not recorded",
-inboxLocalLogged:"Logged locally: {a} · not written back",
+inboxLocalLogged:"Recorded locally: {a} · awaiting seal (not written back)",
+inboxSealAwaiting:"Awaiting seal · not written back",inboxSealMatch:"Hub decided · matches the local record ({s})",inboxSealDiffer:"Hub decided · differs from the local record (hub: {s})",inboxSealUnknown:"Hub state unknown · the local record cannot be checked",
+inboxStepOf:"Step {n} of 2",inboxConfirmTitle:"Confirm this decision",inboxConfirmLead:"Confirming appends the record below to the local log. Nothing is written before you confirm.",inboxConfirmBtn:"Confirm: {a} and record locally",inboxBack:"Back to edit",inboxCAction:"Action",inboxCItem:"Item",inboxCReason:"Reason",inboxCBasis:"Basis",inboxConfirmChanged:"The content of this item changed before confirmation (content hash differs). Nothing was recorded. Review and decide again.",
 inboxLocalStale:"Local record is based on older content (content hash changed) — review again",
 inboxActApprove:"Approve",inboxActReject:"Reject",inboxActWithdraw:"Withdraw",
 inboxNotice:"Decisions are recorded in the local log and written back through the hub confirmation queue. This page never writes a source file and does not mean the decision has reached the hub.",
@@ -493,8 +502,8 @@ inboxSecDecision:"Decision",
 inboxChoiceLabel:"Approve or reject",
 inboxReasonLabel:"Reason (required)",
 inboxReasonPh:"Write the reason. A decision without a reason cannot be submitted.",
-inboxHintBoth:"Choose approve or reject and write a reason first.",inboxHintChoice:"Choose approve or reject.",inboxHintReason:"A reason is still needed.",inboxHintReady:"Will be recorded in the local log: {a}.",
-inboxSubmit:"Record in local log",inboxSubmitA:"{a} and record in local log",
+inboxHintBoth:"Choose approve or reject and write a reason first.",inboxHintChoice:"Choose approve or reject.",inboxHintReason:"A reason is still needed.",inboxHintReady:"\"{a}\" is recorded in the local log only after the review step.",
+inboxSubmit:"Next: review",inboxSubmitA:"Next: review — {a}",
 inboxSaved:"Recorded in the local log and read back. Not yet written back to the hub.",
 inboxSaveFailed:"Writing the local log failed (browser storage unavailable or full). This decision was not recorded.",
 inboxDecidedHub:"The hub queue already holds a decision; it is not rewritten here.",
@@ -605,6 +614,18 @@ function inboxLocalFor(it){
   var bh=(e.basis&&e.basis.content_hash)?e.basis.content_hash:null;
   return{entry:e,stale:bh!==(it.content_hash||null)};
 }
+/* Seal: whether the hub queue has caught up with the local record in effect. 'awaiting' while the hub item is still pending;
+   'match' / 'differ' once the hub holds a decision (executed counts as approved); 'unknown' when the hub state is unknown.
+   It compares states only and never claims that this log caused the hub decision. */
+function inboxSealFor(it){
+  var e=inboxLastEntry(it.queue_id);
+  if(!e||e.action==='withdraw')return null;
+  if(it.state==='pending'){var l=inboxLocalFor(it);return l.stale?null:{entry:e,seal:'awaiting'}}
+  if(it.state==='unknown')return{entry:e,seal:'unknown'};
+  var ok=(e.action==='approve'&&(it.state==='approved'||it.state==='executed'))||(e.action==='reject'&&it.state==='rejected');
+  return{entry:e,seal:ok?'match':'differ'};
+}
+function inboxSealText(sl,it){if(!sl)return '';if(sl.seal==='awaiting')return t('inboxSealAwaiting');if(sl.seal==='unknown')return t('inboxSealUnknown');return t(sl.seal==='match'?'inboxSealMatch':'inboxSealDiffer',{s:inboxStateLabel(it.state)})}
 function inboxBucket(it){if(it.state==='pending'){var l=inboxLocalFor(it);return(l.entry&&!l.stale)?'logged':'todo'}return it.state}
 function inboxExportObject(){return{schema:INBOX_LOG_SCHEMA,exported_at:new Date().toISOString(),shell_version:SHELL_VERSION,delivery:'local_only',note:'Local decision log exported from the Helm PWA. These entries are NOT delivered to the hub; write-back happens through the hub confirmation queue.',entries:inboxLog.slice()}}
 function inboxExportText(){return JSON.stringify(inboxExportObject(),null,2)}
@@ -703,7 +724,8 @@ function inboxRowHtml(it){
   h+='<span class="inbox-row-top"><span class="inbox-title">'+esc(inboxTitle(it))+'</span>'+inboxStateWord(it.state)+'</span>';
   h+='<span class="inbox-effect'+(sum?'':' is-none')+'">'+esc(sum||t('inboxEffectMissing'))+'</span>';
   h+='<span class="inbox-meta">'+esc(meta.join(' · '))+'</span>';
-  if(l.entry)h+='<span class="inbox-local">'+esc(l.stale?t('inboxLocalStale'):t('inboxLocalLogged',{a:inboxActLabel(l.entry.action)}))+'</span>';
+  if(it.state==='pending'){if(l.entry)h+='<span class="inbox-local">'+esc(l.stale?t('inboxLocalStale'):t('inboxLocalLogged',{a:inboxActLabel(l.entry.action)}))+'</span>'}
+  else{var sl=inboxSealFor(it);if(sl)h+='<span class="inbox-local">'+esc(inboxActLabel(sl.entry.action)+' · '+inboxSealText(sl,it))+'</span>'}
   return h+'</button>';
 }
 function inboxFootHtml(withNotice){
@@ -781,7 +803,7 @@ function inboxRenderHosts(){
 
 /* ---- sheet: item detail (decision inside the detail) and the decision log ---- */
 var inboxSheetEl=null,inboxSheetBody=null,inboxSheetMode=null,inboxOpenId=null,inboxNavList=[],inboxDrafts={},inboxFlash=null,inboxReturnFocus=null,inboxSig='',inboxJsonShown=false,inboxLogMsg='';
-function inboxDraft(id){if(!inboxDrafts[id])inboxDrafts[id]={mode:null,choice:null,reason:''};return inboxDrafts[id]}
+function inboxDraft(id){if(!inboxDrafts[id])inboxDrafts[id]={mode:null,choice:null,reason:'',review:null};return inboxDrafts[id]}
 function inboxFormState(it){
   /* 'closed' (hub already decided / unknown state), 'summary' (a local record is in effect), or a form mode. */
   if(it.state!=='pending')return 'closed';
@@ -829,24 +851,36 @@ function inboxEntryHtml(e,opts){
   var h='<div class="inbox-entry'+(isLast?'':' is-old')+'"><div class="what"><span>'+esc(inboxActLabel(e.action))+(opts&&opts.showId?' · '+esc(e.queue_id):'')+'</span><span class="when">'+esc(ts?ts.text:'')+'</span></div>';
   h+='<div class="why">'+esc(e.decision_note)+'</div>';
   h+='<div class="basis">'+esc(t('inboxBasis',{h:b.content_hash||t('inboxBasisNoHash'),g:(b.generation_seq===null||b.generation_seq===undefined)?t('inboxBasisNoGen'):b.generation_seq,s:b.snapshot_state||'—'}))+'</div>';
-  h+='<div class="tags"><span class="tag">'+esc(isLast?(e.action==='withdraw'?t('inboxWithdrawn'):t('inboxEffective')):t('inboxSuperseded'))+'</span><span class="tag">'+esc(t('inboxNotDelivered'))+'</span>';
+  h+='<div class="tags"><span class="tag">'+esc(isLast?(e.action==='withdraw'?t('inboxWithdrawn'):t('inboxEffective')):t('inboxSuperseded'))+'</span>';
+  var eit=inboxItemById(e.queue_id),esl=(isLast&&eit)?inboxSealFor(eit):null;
+  h+='<span class="tag">'+esc(esl?inboxSealText(esl,eit):t('inboxNotDelivered'))+'</span>';
   if(opts&&opts.showId){h+=inboxItemById(e.queue_id)?'<button type="button" class="inbox-link" data-inbox-open="'+esc(e.queue_id)+'">'+esc(t('inboxOpenItem'))+'</button>':'<span class="tag">'+esc(t('inboxNotInSnapshot'))+'</span>'}
   return h+'</div></div>';
 }
 function inboxDecisionHtml(it){
   var fs=inboxFormState(it),d=inboxDraft(it.queue_id),l=inboxLocalFor(it),h='';
   if(inboxFlash&&inboxFlash.id===it.queue_id)h+='<div class="inbox-flash" role="status">'+esc(inboxFlash.text)+'</div>';
-  if(fs==='closed'){return h+'<p class="inbox-none">'+esc(it.state==='unknown'?t('inboxUnknownHub'):t('inboxDecidedHub'))+'</p>'}
+  if(fs==='closed'){var csl=inboxSealFor(it);return h+'<p class="inbox-none">'+esc(it.state==='unknown'?t('inboxUnknownHub'):t('inboxDecidedHub'))+'</p>'+(csl?'<div class="inbox-local-now"><div class="eyebrow">'+esc(t('inboxLocalNow'))+'</div><div class="what">'+esc(inboxActLabel(csl.entry.action))+'</div><div class="why">'+esc(csl.entry.decision_note)+'</div><span class="inbox-note">'+esc(inboxSealText(csl,it))+'</span></div>':'')}
   if(fs==='summary'){
     var ts=inboxTs(l.entry.decided_at);
-    h+='<div class="inbox-local-now"><div class="eyebrow">'+esc(t('inboxLocalNow'))+'</div><div class="what">'+esc(inboxActLabel(l.entry.action))+' · '+esc(ts?ts.text:'')+'</div><div class="why">'+esc(l.entry.decision_note)+'</div><span class="inbox-note">'+esc(t('inboxLocalNowState'))+' '+esc(t('inboxNotice'))+'</span></div>';
+    h+='<div class="inbox-local-now"><div class="eyebrow">'+esc(t('inboxLocalNow'))+' · '+esc(t('inboxSealAwaiting'))+'</div><div class="what">'+esc(inboxActLabel(l.entry.action))+' · '+esc(ts?ts.text:'')+'</div><div class="why">'+esc(l.entry.decision_note)+'</div><span class="inbox-note">'+esc(t('inboxLocalNowState'))+' '+esc(t('inboxNotice'))+'</span></div>';
     h+='<div class="inbox-actions">';
     if(inboxNextTodoId(it.queue_id))h+='<button type="button" class="btn primary" data-fk="nexttodo" data-inbox-nexttodo="1">'+esc(t('inboxNextTodo'))+'</button>';
     h+='<button type="button" class="btn" data-fk="redecide" data-inbox-mode="redecide">'+esc(t('inboxRedecide'))+'</button><button type="button" class="btn" data-fk="withdraw" data-inbox-mode="withdraw">'+esc(t('inboxWithdrawBtn'))+'</button></div>';
     return h;
   }
   var rd=inboxFormReady(it);
-  h+='<form class="inbox-form" id="inboxForm" novalidate>';
+  if(d.review&&rd.ok){
+    var act=(fs==='withdraw')?'withdraw':d.choice;
+    h+='<div class="inbox-confirm" role="group" aria-labelledby="inboxConfirmTitle"><div class="eyebrow">'+esc(t('inboxStepOf',{n:2}))+'</div><div class="what" id="inboxConfirmTitle">'+esc(t('inboxConfirmTitle'))+'</div><p class="inbox-hint">'+esc(t('inboxConfirmLead'))+'</p><dl class="inbox-fields">';
+    h+=inboxFieldRow(t('inboxCAction'),'action',esc(inboxActLabel(act)));
+    h+=inboxFieldRow(t('inboxCItem'),'queue_id',esc(inboxTitle(it))+(it.display_title?'<span class="sub">'+esc(it.queue_id)+'</span>':''));
+    h+=inboxFieldRow(t('inboxCReason'),'decision_note','<span class="why">'+esc(d.reason.trim())+'</span>');
+    h+=inboxFieldRow(t('inboxCBasis'),'basis',esc([it.content_hash||t('inboxBasisNoHash'),t('generation',{n:(snapshot&&snapshot.generationSeq!==null&&snapshot.generationSeq!==undefined)?snapshot.generationSeq:t('inboxBasisNoGen')}),signalLabel(signalState())].join(' \u00b7 ')),'mono');
+    h+='</dl><div class="inbox-actions"><button type="button" class="btn primary" id="inboxConfirm" data-fk="confirm" data-inbox-confirm="1">'+esc(t('inboxConfirmBtn',{a:inboxActLabel(act)}))+'</button><button type="button" class="btn" data-fk="back" data-inbox-back="1">'+esc(t('inboxBack'))+'</button></div><span class="inbox-note">'+esc(t('inboxNotice'))+'</span></div>';
+    return h;
+  }
+  h+='<form class="inbox-form" id="inboxForm" novalidate><div class="eyebrow">'+esc(t('inboxStepOf',{n:1}))+'</div>';
   if(fs==='withdraw'){h+='<p class="inbox-hint">'+esc(t('inboxWithdrawNote'))+'</p>'}
   else{
     h+='<div class="inbox-choice" role="radiogroup" aria-label="'+esc(t('inboxChoiceLabel'))+'">';
@@ -932,8 +966,8 @@ function inboxBuildSheet(){
   document.body.appendChild(el);inboxSheetEl=el;inboxSheetBody=el.firstChild;
   /* Desktop: a click on the scrim closes the dialog (the draft is kept in memory). Phone: the sheet is full-screen, so only the Close button closes it. */
   el.addEventListener('click',function(ev){if(ev.target===el){if(objIsDesktop())inboxCloseSheet();return}inboxHandleClick(ev)});
-  el.addEventListener('input',function(ev){var ta=ev.target;if(!ta||ta.id!=='inboxReason'||!inboxOpenId)return;inboxDraft(inboxOpenId).reason=ta.value;inboxUpdateFormUi()});
-  el.addEventListener('change',function(ev){var r=ev.target;if(!r||r.name!=='inboxChoice'||!inboxOpenId)return;inboxDraft(inboxOpenId).choice=(r.value==='approve'||r.value==='reject')?r.value:null;inboxUpdateFormUi()});
+  el.addEventListener('input',function(ev){var ta=ev.target;if(!ta||ta.id!=='inboxReason'||!inboxOpenId)return;var dd=inboxDraft(inboxOpenId);dd.reason=ta.value;dd.review=null;inboxUpdateFormUi()});
+  el.addEventListener('change',function(ev){var r=ev.target;if(!r||r.name!=='inboxChoice'||!inboxOpenId)return;var dc=inboxDraft(inboxOpenId);dc.choice=(r.value==='approve'||r.value==='reject')?r.value:null;dc.review=null;inboxUpdateFormUi()});
   el.addEventListener('submit',function(ev){ev.preventDefault();inboxSubmit()});
 }
 function inboxUpdateFormUi(){
@@ -945,7 +979,7 @@ function inboxUpdateFormUi(){
 function inboxSheetSig(){
   if(inboxSheetMode==='log')return 'log|'+inboxLog.length+'|'+inboxJsonShown+'|'+inboxLogMsg;
   var it=inboxItemById(inboxOpenId),last=inboxOpenId?inboxLastEntry(inboxOpenId):null;
-  return 'detail|'+JSON.stringify(it)+'|'+(last?last.log_id:'')+'|'+signalState()+'|'+(snapshot?snapshot.generationSeq:'')+'|'+(it?inboxFormState(it):'')+'|'+(inboxFlash?inboxFlash.text:'')+'|'+inboxNavList.join(',');
+  return 'detail|'+JSON.stringify(it)+'|'+(last?last.log_id:'')+'|'+signalState()+'|'+(snapshot?snapshot.generationSeq:'')+'|'+(it?inboxFormState(it)+(inboxDraft(it.queue_id).review?':review':''):'')+'|'+(inboxFlash?inboxFlash.text:'')+'|'+inboxNavList.join(',');
 }
 function inboxRenderSheet(focusKey){
   if(!inboxSheetEl||!inboxSheetMode)return;
@@ -971,7 +1005,10 @@ function inboxShowSheet(mode,originEl){
   inboxSheetEl.scrollTop=0;
   inboxRenderSheet('close');
 }
+/* The review step never survives leaving an item: moving away, closing or opening another item returns to step 1. */
+function inboxClearReviews(){for(var k in inboxDrafts){if(inboxOwn(inboxDrafts,k))inboxDrafts[k].review=null}}
 function inboxOpen(id,originEl,navIds){
+  inboxClearReviews();
   if(!inboxItemById(id))return false;
   if(inboxFlash&&inboxFlash.id!==id)inboxFlash=null;
   inboxOpenId=id;
@@ -983,6 +1020,7 @@ function inboxOpen(id,originEl,navIds){
 function inboxOpenLog(originEl){inboxLog=inboxLoadLog();inboxLogMsg='';inboxOpenId=null;inboxShowSheet('log',originEl)}
 function inboxCloseSheet(){
   if(!inboxSheetEl||!inboxSheetMode)return;
+  inboxClearReviews();
   inboxSheetMode=null;inboxOpenId=null;inboxFlash=null;inboxJsonShown=false;inboxLogMsg='';
   inboxSheetEl.classList.remove('open');document.documentElement.classList.remove('inbox-lock');
   var back=inboxReturnFocus;inboxReturnFocus=null;
@@ -1005,19 +1043,30 @@ function inboxSubmit(){
   if(fs!=='decide'&&fs!=='redecide'&&fs!=='withdraw')return;
   /* The reason gate is re-checked here; the disabled button is not the only guard. */
   var rd=inboxFormReady(it);if(!rd.ok){inboxUpdateFormUi();return}
+  /* Step 1 only moves to the review step. Nothing is written here. */
+  d.review={at:new Date().toISOString(),content_hash:it.content_hash||null,action:(fs==='withdraw')?'withdraw':d.choice};
+  inboxFlash=null;inboxRenderSheet('confirm');
+}
+/* Step 2: a separate button in a separate render. Re-checks the reason gate and that the item did not change since step 1. */
+function inboxConfirm(){
+  var it=inboxItemById(inboxOpenId);if(!it)return;
+  var fs=inboxFormState(it),d=inboxDraft(it.queue_id);
+  if(fs!=='decide'&&fs!=='redecide'&&fs!=='withdraw')return;
+  var rd=inboxFormReady(it);if(!rd.ok||!d.review){d.review=null;inboxRenderSheet('submit');return}
   var action=(fs==='withdraw')?'withdraw':d.choice;
+  if(d.review.action!==action||d.review.content_hash!==(it.content_hash||null)){d.review=null;inboxFlash={id:it.queue_id,text:t('inboxConfirmChanged')};inboxRenderSheet('submit');return}
   var prev=inboxLastEntry(it.queue_id);
-  var entry={log_id:newId(),seq:0,queue_id:it.queue_id,action:action,proposed_state:action==='approve'?'approved':(action==='reject'?'rejected':null),decision_note:d.reason.trim(),decided_at:new Date().toISOString(),decided_via:'helm-pwa-local-log',supersedes:prev?prev.log_id:null,
+  var entry={log_id:newId(),seq:0,queue_id:it.queue_id,action:action,proposed_state:action==='approve'?'approved':(action==='reject'?'rejected':null),decision_note:d.reason.trim(),decided_at:new Date().toISOString(),reviewed_at:d.review.at,decided_via:'helm-pwa-local-log',supersedes:prev?prev.log_id:null,
     basis:{content_hash:it.content_hash,kind:it.kind,state:it.state,subject_ref:it.subject_ref,requested_at:it.requested_at,generation_seq:snapshot?snapshot.generationSeq:null,projection_version:snapshot?snapshot.projectionVersion:null,snapshot_state:signalState(),snapshot_fetched_at:snapshotFetchedAt?new Date(snapshotFetchedAt).toISOString():null},
     delivery:'local_only'};
-  if(!inboxAppendEntry(entry)){inboxFlash={id:it.queue_id,text:t('inboxSaveFailed')};inboxRenderSheet('submit');return}
-  inboxDrafts[it.queue_id]={mode:null,choice:null,reason:''};
+  if(!inboxAppendEntry(entry)){inboxFlash={id:it.queue_id,text:t('inboxSaveFailed')};inboxRenderSheet('confirm');return}
+  inboxDrafts[it.queue_id]={mode:null,choice:null,reason:'',review:null};
   inboxFlash={id:it.queue_id,text:t('inboxSaved')};
   inboxRenderHosts();inboxRenderMe();
   inboxRenderSheet(action==='withdraw'?'reason':(inboxNextTodoId(it.queue_id)?'nexttodo':'redecide'));
 }
 function inboxHandleClick(ev){
-  var el=ev.target&&ev.target.closest?ev.target.closest('[data-inbox-open],[data-inbox-tab],[data-inbox-more],[data-inbox-log],[data-inbox-close],[data-inbox-step],[data-inbox-mode],[data-inbox-nexttodo],[data-inbox-export],[data-inbox-json],[data-inbox-subject-type]'):null;
+  var el=ev.target&&ev.target.closest?ev.target.closest('[data-inbox-open],[data-inbox-tab],[data-inbox-more],[data-inbox-log],[data-inbox-close],[data-inbox-step],[data-inbox-mode],[data-inbox-nexttodo],[data-inbox-export],[data-inbox-json],[data-inbox-subject-type],[data-inbox-confirm],[data-inbox-back]'):null;
   if(!el||el.disabled)return false;
   var host=el.closest('#approvalsBlock,#wp-pending-b');
   if(el.hasAttribute('data-inbox-open')){
@@ -1025,19 +1074,22 @@ function inboxHandleClick(ev){
     if(host){var g=inboxGroups();nav=(g[inboxTab]||[]).map(function(x){return x.queue_id})}
     inboxOpen(el.getAttribute('data-inbox-open'),inboxSheetMode?null:el,nav);return true;
   }
+  if(el.hasAttribute('data-inbox-confirm')){inboxConfirm();return true}
+  if(el.hasAttribute('data-inbox-back')){var db=inboxDraft(inboxOpenId);db.review=null;inboxRenderSheet('submit');return true}
   if(el.hasAttribute('data-inbox-tab')){var k=el.getAttribute('data-inbox-tab');if(INBOX_TABS.indexOf(k)>-1&&k!==inboxTab){inboxTab=k;inboxExpanded=false}inboxRenderHosts();return true}
   if(el.hasAttribute('data-inbox-more')){inboxExpanded=!inboxExpanded;inboxRenderHosts();return true}
   if(el.hasAttribute('data-inbox-log')){inboxOpenLog(el);return true}
   if(el.hasAttribute('data-inbox-close')){inboxCloseSheet();return true}
-  if(el.hasAttribute('data-inbox-step')){var idx=inboxNavList.indexOf(inboxOpenId),to=idx+parseInt(el.getAttribute('data-inbox-step'),10);if(idx>-1&&to>=0&&to<inboxNavList.length){inboxFlash=null;inboxOpenId=inboxNavList[to];inboxSheetEl.scrollTop=0;inboxRenderSheet(el.getAttribute('data-fk'))}return true}
+  if(el.hasAttribute('data-inbox-step')){var idx=inboxNavList.indexOf(inboxOpenId),to=idx+parseInt(el.getAttribute('data-inbox-step'),10);if(idx>-1&&to>=0&&to<inboxNavList.length){inboxClearReviews();inboxFlash=null;inboxOpenId=inboxNavList[to];inboxSheetEl.scrollTop=0;inboxRenderSheet(el.getAttribute('data-fk'))}return true}
   if(el.hasAttribute('data-inbox-mode')){
     var m=el.getAttribute('data-inbox-mode'),d=inboxDraft(inboxOpenId);
     inboxFlash=null;
+    d.review=null;
     if(m==='cancel'){d.mode=null;d.choice=null;d.reason='';inboxRenderSheet('redecide')}
     else if(m==='redecide'||m==='withdraw'){d.mode=m;d.choice=null;d.reason='';inboxRenderSheet(m==='withdraw'?'reason':'choice-approve')}
     return true;
   }
-  if(el.hasAttribute('data-inbox-nexttodo')){var nx=inboxNextTodoId(inboxOpenId);if(nx){inboxFlash=null;inboxOpenId=nx;if(inboxNavList.indexOf(nx)<0)inboxNavList=inboxGroups().todo.map(function(x){return x.queue_id});inboxSheetEl.scrollTop=0;inboxRenderSheet('close')}return true}
+  if(el.hasAttribute('data-inbox-nexttodo')){var nx=inboxNextTodoId(inboxOpenId);if(nx){inboxClearReviews();inboxFlash=null;inboxOpenId=nx;if(inboxNavList.indexOf(nx)<0)inboxNavList=inboxGroups().todo.map(function(x){return x.queue_id});inboxSheetEl.scrollTop=0;inboxRenderSheet('close')}return true}
   if(el.hasAttribute('data-inbox-export')){if(!inboxLog.length)return true;if(!inboxExportFile()){if(inboxSheetMode!=='log')inboxOpenLog(el);inboxJsonShown=true;inboxLogMsg=t('inboxExportFailed');inboxRenderSheet('json')}return true}
   if(el.hasAttribute('data-inbox-json')){inboxJsonShown=!inboxJsonShown;inboxRenderSheet('json');return true}
   if(el.hasAttribute('data-inbox-subject-type')){var ty=el.getAttribute('data-inbox-subject-type'),rf=el.getAttribute('data-inbox-subject-ref');inboxCloseSheet();openObject(ty,rf);return true}
