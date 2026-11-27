@@ -12,6 +12,7 @@ const REPO = path.resolve(__dirname, '..', '..');
 let BASE = '';
 // The app accepts https snapshot URLs only (F-1), so fixtures are served under an https test host and fulfilled from the repo by a route.
 const FIX = 'https://fixtures.helm.test';
+const SW_VERSION = (fs.readFileSync(path.join(REPO, 'sw.js'), 'utf8').match(/SW_VERSION = '([^']+)'/) || [])[1];
 const SHOTS = process.argv[2] || path.join(os.tmpdir(), 'helm-live-shots');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml' };
 function serve() {
@@ -32,6 +33,14 @@ function ok(cond, name, extra) {
   if (cond) { pass++; console.log('  ok   ' + name); }
   else { fail++; failures.push(name); console.log('  FAIL ' + name + (extra !== undefined ? ' :: ' + JSON.stringify(extra) : '')); }
 }
+// Fixtures are static files with fixed dates; the app judges freshness on generated_at (ADR-0001 §4.4). A fixture that
+// carries generated_at is served with "5 minutes ago" so it reads as live; pass opts.generatedAt to serve a chosen value
+// (null removes the field). Fixtures without generated_at are served unchanged.
+function freshen(body, override) {
+  if (override !== undefined) { if (override === null) { delete body.generated_at; delete body.generatedAt; } else body.generated_at = override; return body; }
+  if (body.generated_at !== undefined || body.generatedAt !== undefined) { delete body.generatedAt; body.generated_at = new Date(Date.now() - 5 * 60000).toISOString(); }
+  return body;
+}
 async function open(browser, w, h, fixture, opts) {
   opts = opts || {};
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: opts.dsf || 1, locale: opts.locale || 'zh-CN', acceptDownloads: true });
@@ -40,7 +49,7 @@ async function open(browser, w, h, fixture, opts) {
   page.on('pageerror', e => errs.push('PAGEERROR ' + e.message));
   page.on('console', m => { if (m.type() === 'error') errs.push('CONSOLE ' + m.text()); });
   page.on('request', r => reqs.push(r.method() + ' ' + r.url()));
-  await page.route(FIX + '/**', async r => { const u = new URL(r.request().url()); const f = path.join(REPO, decodeURIComponent(u.pathname)); if (!f.startsWith(REPO + '/tests/fixtures/') || !fs.existsSync(f)) return r.fulfill({ status: 404, body: 'not found' }); await r.fulfill({ contentType: 'application/json', body: fs.readFileSync(f) }); });
+  await page.route(FIX + '/**', async r => { const u = new URL(r.request().url()); const f = path.join(REPO, decodeURIComponent(u.pathname)); if (!f.startsWith(REPO + '/tests/fixtures/') || !fs.existsSync(f)) return r.fulfill({ status: 404, body: 'not found' }); await r.fulfill({ contentType: 'application/json', body: JSON.stringify(freshen(JSON.parse(fs.readFileSync(f, 'utf8')), opts.generatedAt)) }); });
   if (opts.route) await opts.route(page);
   await page.addInitScript((u) => { if (!localStorage.getItem('__seeded')) { localStorage.setItem('__seeded', '1'); if (u) localStorage.setItem('fit.snapshot.url', u); } }, fixture ? FIX + '/tests/fixtures/' + fixture : '');
   await page.goto(BASE + '/index.html');
@@ -215,7 +224,7 @@ async function mainFlow(browser, w, h) {
   const dlPath = path.join(SHOTS, `export-${w}.json`);
   await dl.saveAs(dlPath);
   const ex = JSON.parse(fs.readFileSync(dlPath, 'utf8'));
-  ok(/^helm-decision-log-\d{8}-\d{6}\.json$/.test(dl.suggestedFilename()) && ex.schema === 'helm.decision-log.v1' && ex.delivery === 'local_only' && ex.entries.length === 3 && ex.shell_version === 'v12', 'export file parses: schema, delivery=local_only, 3 entries', dl.suggestedFilename());
+  ok(/^helm-decision-log-\d{8}-\d{6}\.json$/.test(dl.suggestedFilename()) && ex.schema === 'helm.decision-log.v1' && ex.delivery === 'local_only' && ex.entries.length === 3 && ex.shell_version === SW_VERSION, 'export file parses: schema, delivery=local_only, 3 entries', dl.suggestedFilename());
   await S.locator('[data-inbox-json]').click();
   ok(JSON.parse(await S.locator('.inbox-json').inputValue()).entries.length === 3, 'JSON text view matches');
   await page.screenshot({ path: path.join(SHOTS, `inbox-log-${w}.png`) });
@@ -255,7 +264,7 @@ async function staleHashFlow(browser, w, h) {
     await page.route('**/tests/fixtures/snapshot.queue.json', async r => {
       const body = JSON.parse(fs.readFileSync(path.join(REPO, 'tests/fixtures/snapshot.queue.json'), 'utf8'));
       if (mutate) { const it = body.queue.items.find(i => i.queue_id === 'cq18'); it.effect = 'CHANGED effect text'; it.content_hash = 'sha256:' + 'ab'.repeat(32); body.generation_seq = 50; }
-      await r.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
+      await r.fulfill({ contentType: 'application/json', body: JSON.stringify(freshen(body)) });
     });
   };
   const { ctx, page, errs } = await open(browser, w, h, 'snapshot.queue.json', { route });
@@ -285,7 +294,7 @@ async function sealFlow(browser, w, h) {
       const body = JSON.parse(fs.readFileSync(path.join(REPO, 'tests/fixtures/snapshot.queue.json'), 'utf8'));
       const it = body.queue.items.find(i => i.queue_id === 'cq20');
       if (hub !== 'pending') { it.state = hub; it.decided_at = '2026-11-13T09:00:00Z'; it.decided_via = 'ceo_chat'; it.decision_note = null; body.generation_seq = 51; }
-      await r.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
+      await r.fulfill({ contentType: 'application/json', body: JSON.stringify(freshen(body)) });
     });
   };
   const { ctx, page, errs } = await open(browser, w, h, 'snapshot.queue.json', { route });
@@ -313,6 +322,54 @@ async function sealFlow(browser, w, h) {
   ok((await S.locator('.inbox-entry .tags').first().textContent()).includes('与本地记录不同'), 'log sheet shows the differing seal');
   ok(errs.length === 0, 'zero page errors', errs);
   await ctx.close();
+}
+
+async function freshnessFlow(browser, w, h) {
+  console.log(`\n== freshness from generated_at (ADR-0001 §4.4) @ ${w}x${h}`);
+  const top = page => page.locator('#topSignalText').textContent();
+  const dataLine = async page => w >= 1024 ? page.locator('#wp-data-age').textContent() : page.locator('#snapshotNote').textContent();
+  const iso = ms => new Date(Date.now() + ms).toISOString();
+  let r = await open(browser, w, h, 'snapshot.queue.json');
+  ok((await top(r.page)).startsWith('已连接'), 'generated 5 min ago: Live', await top(r.page));
+  ok((await dataLine(r.page)).includes('数据生成于 5 分钟前'), 'data age shown (5 min)', await dataLine(r.page));
+  ok(r.errs.length === 0, 'zero page errors (fresh)', r.errs); await r.ctx.close();
+
+  r = await open(browser, w, h, 'snapshot.queue.json', { generatedAt: iso(-8 * 86400000) });
+  ok((await top(r.page)).startsWith('快照较旧'), 'fetched just now but generated 8 days ago: Stale, not Live', await top(r.page));
+  ok((await dataLine(r.page)).includes('数据生成于 8 天前'), 'data age shown (8 days)', await dataLine(r.page));
+  await r.page.locator('nav button[data-v="v-me"]').click();
+  ok((await r.page.locator('#snapshotStatus').textContent()).includes('数据生成于 8 天前'), 'Me view states the data age');
+  await r.page.locator('nav button[data-v="v-brief"]').click();
+  const H = r.page.locator(hostSel(w)), S = r.page.locator('#inboxSheet');
+  await H.locator('.inbox-row').first().click();
+  ok((await S.locator('.inbox-warn').first().textContent()).includes('当前显示的不是实时快照（快照较旧'), 'inbox detail warns on stale data');
+  ok((await S.locator('.inbox-warn').first().textContent()).includes('数据生成于 8 天前'), 'the warning names the data age, not the fetch age');
+  await decide(r.page, S, 'approve', 'Decided on stale data.');
+  const lg = await log(r.page);
+  ok(lg.entries[0].basis.snapshot_state === 'stale', 'decision basis records snapshot_state=stale', lg.entries[0].basis);
+  await r.page.screenshot({ path: path.join(SHOTS, `freshness-stale-${w}.png`) });
+  ok(r.errs.length === 0, 'zero page errors (stale)', r.errs); await r.ctx.close();
+
+  r = await open(browser, w, h, 'snapshot.queue.json', { generatedAt: null });
+  ok((await top(r.page)).startsWith('快照较旧'), 'no generated_at: never Live', await top(r.page));
+  ok((await dataLine(r.page)).includes('数据生成时间未知'), 'missing generated_at stated in words', await dataLine(r.page));
+  ok(r.errs.length === 0, 'zero page errors (missing)', r.errs); await r.ctx.close();
+
+  r = await open(browser, w, h, 'snapshot.queue.json', { generatedAt: iso(2 * 3600000) });
+  ok((await top(r.page)).startsWith('快照较旧') && (await dataLine(r.page)).includes('晚于本机时间'), 'generated_at in the future: not Live, stated');
+  ok(r.errs.length === 0, 'zero page errors (future)', r.errs); await r.ctx.close();
+
+  r = await open(browser, w, h, 'snapshot.queue.json', { generatedAt: iso(-23 * 3600000) });
+  ok((await top(r.page)).startsWith('已连接'), 'generated 23 h ago: still within the 24 h threshold');
+  ok(r.errs.length === 0, 'zero page errors (23 h)', r.errs); await r.ctx.close();
+
+  r = await open(browser, w, h, 'snapshot.queue.json', { generatedAt: 'not-a-date' });
+  ok((await top(r.page)).startsWith('快照较旧') && (await dataLine(r.page)).includes('数据生成时间未知'), 'unparsable generated_at treated as missing');
+  ok(r.errs.length === 0, 'zero page errors (unparsable)', r.errs); await r.ctx.close();
+
+  r = await open(browser, w, h, 'snapshot.sample.json');
+  ok((await top(r.page)).startsWith('已连接'), 'legacy camelCase generatedAt is read (sample fixture)', await top(r.page));
+  ok(r.errs.length === 0, 'zero page errors (sample)', r.errs); await r.ctx.close();
 }
 
 async function cachedFlow(browser, w, h) {
@@ -441,6 +498,7 @@ async function stateFixtures(browser, w, h) {
     await staleHashFlow(browser, w, h);
     await sealFlow(browser, w, h);
     await cachedFlow(browser, w, h);
+    await freshnessFlow(browser, w, h);
     await edgeFlow(browser, w, h);
     await stateFixtures(browser, w, h);
   }
