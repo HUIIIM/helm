@@ -93,3 +93,12 @@
 - Also fixed: a cached snapshot lost its generation number on reload (the re-clean now reads `generationSeq`).
 - Checks: inline script `node --check` PASS; `tests/live/inbox.live.js` at 390 and 1440, 275 assertions, 0 failures, zero PAGEERROR, no non-GET requests and no requests outside the page origin and the fixture host. Since F-1 (https-only snapshot URLs) the live test serves fixtures under an https test host fulfilled from `tests/fixtures/`; an http snapshot URL is still cleared on load and never fetched.
 - Service worker: helm-shell-v12 in both sw.js (SW_VERSION = 'v12') and index.html (SHELL_VERSION = 'v12').
+
+## Freshness from generated_at (2026-11-27)
+
+- Implements ADR-0001 §4.4 (proposed in the ADR PR): "Live" now needs a successful fetch **and** data generated within 24 h (`DATA_FRESH_MS`, recommended default pending a ruling). A snapshot fetched just now but generated 8 days ago reads "Stale snapshot", not "Live". Closes the data-freshness half of #18 ARCH-6 / OPS-3.
+- Fail-closed: a snapshot without `generated_at`, with an unparsable one, or with one more than 5 minutes ahead of the device clock is never Live, and the UI says why in words. The cache rule is unchanged (a copy fetched more than 24 h ago is stale).
+- `cleanSnapshot` reads `generated_at` (or legacy `generatedAt`) into `generatedAt`, so a cached snapshot re-cleans identically.
+- Data age is shown in the Wall situation panel, the phone overview note and the Me view snapshot status ("数据生成于 8 天前" / "数据生成时间未知…"). The inbox's not-live warning names the data age when the data is what is old; decisions taken on stale data record `snapshot_state: "stale"` in their basis.
+- Tests: `tests/live/inbox.live.js` serves fixtures that carry `generated_at` with a current one (fixtures are static files with fixed dates) and adds a freshness flow (fresh, 23 h, 8 days, missing, unparsable, future, legacy camelCase). 317 assertions at 390 and 1440, 0 failures, zero PAGEERROR; `node tests/node-check.js` PASS.
+- Service worker: helm-shell-v13 in both sw.js (SW_VERSION = 'v13') and index.html (SHELL_VERSION = 'v13').
