@@ -96,7 +96,7 @@
 
 ## Freshness from generated_at (2026-11-27)
 
-- Implements ADR-0001 §4.4 (proposed in the ADR PR): "Live" now needs a successful fetch **and** data generated within 24 h (`DATA_FRESH_MS`, recommended default pending a ruling). A snapshot fetched just now but generated 8 days ago reads "Stale snapshot", not "Live". Closes the data-freshness half of #18 ARCH-6 / OPS-3.
+- Implements ADR-0001 §4.4 (proposed in the ADR PR): "Live" now needs a successful fetch **and** data generated within 24 h (`DATA_FRESH_MS`, ruled in #21, question 6). A snapshot fetched just now but generated 8 days ago reads "Stale snapshot", not "Live". Closes the data-freshness half of #18 ARCH-6 / OPS-3.
 - Fail-closed: a snapshot without `generated_at`, with an unparsable one, or with one more than 5 minutes ahead of the device clock is never Live, and the UI says why in words. The cache rule is unchanged (a copy fetched more than 24 h ago is stale).
 - `cleanSnapshot` reads `generated_at` (or legacy `generatedAt`) into `generatedAt`, so a cached snapshot re-cleans identically.
 - Data age is shown in the Wall situation panel, the phone overview note and the Me view snapshot status ("数据生成于 8 天前" / "数据生成时间未知…"). The inbox's not-live warning names the data age when the data is what is old; decisions taken on stale data record `snapshot_state: "stale"` in their basis.
