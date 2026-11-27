@@ -1,6 +1,7 @@
 # ADR-0001 双端架构与快照数据契约（含与实时层的汇聚缝）
 
 - **状态**：提议（Proposed）。合并即生效；合并与否由派单方判定。
+- **裁定**：#21 六问已于 2026-11-27 由 Helm 线 owner（Claude 线）按推荐默认值全数裁定，即刻生效；裁定内容已写入正文，汇总见 §9。
 - **日期**：2026-11-21
 - **范围**：Helm 地基——终端形态、数据拓扑、快照契约、与实时层的汇聚缝。不含视觉规范、鉴权实现、生成器实现。
 - **依据代码**：默认分支 `主要` @ `33bec13`（`index.html` 中的 `cleanSnapshot`、收件箱 `inboxCleanQueue`；`tests/fixtures/*.json`）。
@@ -22,11 +23,11 @@ Helm 现在是一个单文件 PWA：`index.html`、`sw.js`、`manifest.webmanife
 
 本 ADR 先把地基定下来，后续切片照此推进。
 
-> **术语对齐（待确认）**：派单原文的「Second Brain 实时层」在本次可读到的一手材料中没有同名出处。名称检索覆盖了 helm、jarvis-architecture、miao-ai 三仓与组织内 issue。与之最接近的一手实现，是私有仓 `HUIIIM/miao-ai` 的实时事件层：
+> **术语对齐（已裁定，#21 第 1 问）**：派单原文的「Second Brain 实时层」在本次可读到的一手材料中没有同名出处。名称检索覆盖了 helm、jarvis-architecture、miao-ai 三仓与组织内 issue。与之最接近的一手实现，是私有仓 `HUIIIM/miao-ai` 的实时事件层：
 > - `ARCHITECTURE.md` §六「事件契约（SSE）」；
 > - 其中的 `memory.*`（长期记忆）与 `approval.*`（审批）事件族。
 >
-> 本 ADR 按「实时层＝该事件层」起草。若所指另有其物，只需要重做 §5 的映射表，§5 的缝规则本身不随对象改变。为不把私有仓的设计复制进公开仓，下文只写 Helm 需要的最小字段与语义，不转录对方契约。
+> 已裁定：「Second Brain 实时层」＝`miao-ai` 实时事件层，本 ADR 即按此书写。§5.1 的缝规则本身不随对象改变；若日后对象更换，只需重做 §5.2 的映射表。为不把私有仓的设计复制进公开仓，下文只写 Helm 需要的最小字段与语义，不转录对方契约。
 
 ## 2. 决策驱动
 
@@ -112,7 +113,7 @@ Helm 现在是一个单文件 PWA：`index.html`、`sw.js`、`manifest.webmanife
 | `overview` | `goals_total`、`goals_named`、`goals_activity_buckets{updated_last_24h, updated_last_7d, older}`、`recent_activity[]{type, date, display_title?, subject_ref?}`、`staleness` |
 | `fleet_health` | `{healthy, degraded, down}` 计数 |
 | `pending_approvals` | 旧形态：`{status, count, items[]}`。出现 `queue` 段时停用。 |
-| `queue` | 队列镜像投影：`{status: connected\|not_connected, count, items[], title_map?, dropped?}`。件字段为 `queue_id, kind, state, actor, requested_at, subject_ref, effect, content_hash, decided_at, decided_via, decision_note` 与 `display_title`；`state` 用 K2 闭枚举 `{pending, approved, rejected, executed, unknown}`。 |
+| `queue` | 队列镜像投影：`{status: connected\|not_connected, count, items[], title_map?, dropped?}`。件字段为 `queue_id, kind, state, actor, requested_at, subject_ref, effect, content_hash, decided_at, decided_via, decision_note` 与 `display_title`，另加可选字段 `decided_by`（决定者，#21 第 5 问裁定的 v2 内加法）；`actor` 保持提请方语义，`decided_via` 保持决定途径语义；`state` 用 K2 闭枚举 `{pending, approved, rejected, executed, unknown}`。 |
 
 **不变量**（客户端已执行，生成器必须保证）：
 
@@ -138,8 +139,8 @@ Helm 现在是一个单文件 PWA：`index.html`、`sw.js`、`manifest.webmanife
 - 「已连接（Live）」必须同时满足两条：本次拉取成功，且 `now − generated_at` ≤ 新鲜阈值。
 - 拉取成功但数据超龄，显示「快照较旧」，并标出数据年龄。拉取失败但有缓存，显示「缓存快照」，并标出缓存年龄。
 - 缺 `generated_at` 的快照不能显示为 Live。
-- 新鲜阈值另行裁定，在实现切片里作为常量落地。
-- 现行代码只看拉取时刻（`signalState`），与本条不符，列为 §7 的第一项实现跟进。
+- 新鲜阈值已裁定为 **24 小时**（#21 第 6 问），在实现切片里作为常量 `DATA_FRESH_MS` 落地（PR #20）。
+- `主要` 现行代码只看拉取时刻（`signalState`），与本条不符；实现见 PR #20（§7 第 1 项）。
 
 ### 4.5 决定与写回
 
@@ -172,21 +173,22 @@ Helm 现在是一个单文件 PWA：`index.html`、`sw.js`、`manifest.webmanife
 4. **同一绑定基线**：可决定对象的决定，绑定在该对象内容的哈希上。
    - 快照侧叫 `content_hash`；实时层的审批对应物是「计划哈希」：计划变化即作废审批。两者语义相同。
    - 汇聚后，事件里可决定对象的哈希必须与快照的 `content_hash` 同算法、同输入口径。否则同一件在两条通道上会出现两个基线。
+   - 已裁定（#21 第 4 问）：统一用 `content_hash` 规则，即对可决定字段做规范化 JSON 后取 sha256；实时层在投影出口按同一口径重算。
 5. **状态机对齐**：快照的 K2 枚举与实时层的审批生命周期必须一一映射。实时层有、K2 没有的终态，在获裁定前一律落到 `unknown`（fail-closed，不开放决定）。
 6. **时间与新鲜度**：事件携带发生时刻。连接状态取「最后一条事件时刻」与 `generated_at` 中较新者计算数据年龄，同 §4.4。
 7. **传输**：只用 https 上的 SSE（与实时层现有传输一致），不引入 WebSocket。实时连接断开时，退回按代拉快照，再从高水位续接。
 8. **鉴权**：实时通道需要令牌（K4）。PWA 阶段不接活令牌，所以**本阶段只定缝、不接通**。接通前须另立鉴权 ADR，至少回答两件事：令牌放在哪里、怎样不落盘。
 
-### 5.2 映射（按「实时层＝`miao-ai` 实时事件层」的待确认假设）
+### 5.2 映射（实时层＝`miao-ai` 实时事件层，#21 第 1 问已裁定）
 
 | Helm 快照侧 | 实时层侧（语义，不转录私有契约） | 对齐结论 |
 |---|---|---|
 | `queue.items[].state = pending` | 审批已请求 | 一致 |
-| `approved` / `rejected` | 审批已决（批准／否决），带决定者、决定时刻、可选理由 | 一致。`decided_by` 对应 `actor` 还是 `decided_via`，**待定**。 |
-| `executed` | 审批后执行完成（实时层是运行状态，不是审批事件） | 需要由运行完成事件推导；推导规则**待定** |
-| （无） | 审批过期（未决关闭） | K2 外。汇聚前落 `unknown`；是否扩 K2 **待裁** |
-| （无） | 审批作废（计划哈希变化） | K2 外，语义等同 Helm 的「基线已变」。汇聚前落 `unknown`，并提示复核；是否扩 K2 **待裁** |
-| `content_hash` | 计划哈希 | 语义一致；算法与输入口径**待统一**（§5.1 第 4 条） |
+| `approved` / `rejected` | 审批已决（批准／否决），带决定者、决定时刻、可选理由 | 一致。决定者映射到新增可选字段 `decided_by`；`actor` 仍为提请方，`decided_via` 仍为决定途径（#21 第 5 问已裁定）。 |
+| `executed` | 审批后执行完成（实时层是运行状态，不是审批事件） | 由服务端投影派生：同一审批的运行完成即投影为 `executed`；客户端不推导（#21 第 3 问已裁定）。 | |
+| （无） | 审批过期（未决关闭） | K2 外。K2 暂不扩枚举，落 `unknown`，fail-closed（#21 第 2 问已裁定）。 |
+| （无） | 审批作废（计划哈希变化） | K2 外，语义等同 Helm 的「基线已变」。K2 暂不扩枚举，落 `unknown` 并提示复核，fail-closed（#21 第 2 问已裁定）。 |
+| `content_hash` | 计划哈希 | 语义一致；统一用 `content_hash` 规则（§5.1 第 4 条，#21 第 4 问已裁定）。 |
 | `subject_ref` | 运行所属目标的引用 | 须改用快照 id 空间（§5.1 第 1 条） |
 | `overview.recent_activity[]` | 运行、工具、记忆等事件流 | 动态项须获得稳定 id（v3）；记忆类事件只进摘要，不进原文 |
 
@@ -208,16 +210,16 @@ Helm 现在是一个单文件 PWA：`index.html`、`sw.js`、`manifest.webmanife
 
 ## 7. 跟进（本 ADR 不实现，各自另立切片）
 
-1. **新鲜度按 `generated_at` 判定**（§4.4）；缺失时不得显示 Live。关闭 #18 ARCH-6 与 OPS-3 的一半。
+1. **新鲜度按 `generated_at` 判定**（§4.4）；缺失时不得显示 Live。关闭 #18 ARCH-6 与 OPS-3 的一半。已实现于 PR #20（阈值 24 小时）。
 2. **契约机器化**：把 §4.3 落成 `docs/contract/snapshot.v2.schema.json`，fixture 逐一过校验，并接进 `tests/`。
 3. **v3 契约草案**，候派单方裁定：
    - 新增 `stream_position`；
    - 为动态项与 `briefing` 增加稳定 id；
    - 统一 `staleness` 字段名；
-   - 统一哈希口径。
-4. **K2 扩枚举裁定**：是否加入「过期」「作废」两个终态。
+   - 哈希口径已裁定（§5.1 第 4 条），v3 只需把口径写进 schema。
+4. ~~K2 扩枚举裁定~~：已裁定暂不扩枚举，两者落 `unknown`（#21 第 2 问）。v3 起草时可再议。
 5. **实时通道鉴权 ADR**：K4 下令牌的存放与生命周期。
-6. **术语确认**：「Second Brain 实时层」是否即 §1 所指的事件层。
+6. ~~术语确认~~：已裁定为 `miao-ai` 实时事件层（#21 第 1 问）。
 
 ## 8. 参考
 
@@ -235,3 +237,16 @@ Helm 现在是一个单文件 PWA：`index.html`、`sw.js`、`manifest.webmanife
 - WHATWG HTML，Server-sent events（`Last-Event-ID`）：https://html.spec.whatwg.org/multipage/server-sent-events.html
 - RFC 9110 §13，条件请求（`If-Match` / 412）：https://www.rfc-editor.org/rfc/rfc9110#section-13
 - NASA Open MCT，telemetry API（`request` / `subscribe`）：https://github.com/nasa/openmct/blob/master/API.md
+
+## 9. 裁定记录
+
+#21 六问，2026-11-27 由 Helm 线 owner（Claude 线）按推荐默认值全数裁定，即刻生效。回执留痕见 #21。
+
+| # | 事项 | 裁定 | 落在本文 |
+|---|---|---|---|
+| 1 | 「Second Brain 实时层」所指 | ＝`miao-ai` 实时事件层 | §1、§5.2 |
+| 2 | K2 是否加「过期」「作废」 | 暂不加；实时层这两种终态记 `unknown`（fail-closed） | §5.2、§7 第 4 项 |
+| 3 | `executed` 的来源 | 由服务端投影派生，客户端不推导 | §5.2 |
+| 4 | 绑定哈希口径 | 统一用 `content_hash` 规则 | §5.1 第 4 条、§5.2 |
+| 5 | 决定者字段映射 | 新增可选字段 `decided_by`（v2 内加法）；`actor`、`decided_via` 语义不变 | §4.3、§5.2 |
+| 6 | 数据新鲜阈值 | 24 小时 | §4.4（实现：PR #20 `DATA_FRESH_MS`） |
