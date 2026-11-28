@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/HUIIIM/helm/docs/contract/snapshot.v2.schema.json",
+  "title": "Helm snapshot projection, contract v2",
+  "description": "Consumer-side contract of the Helm snapshot (ADR-0001 §4.3, rulings in §9 / issue #21). Structural rules only; the semantic invariants (exposure, reference closure, unique ids, binding hash on decidable items) are checked by tests/contract-check.js. Additive-only within a major version: unknown fields are allowed and ignored by the client.",
+  "type": "object",
+  "required": ["projection_version", "generation_seq", "generated_at"],
+  "properties": {
+    "projection_version": { "const": 2, "description": "Contract major version. Legacy `version` is a read fallback only." },
+    "generation_seq": { "type": "integer", "minimum": 0, "description": "Monotonic generation number." },
+    "generated_at": { "$ref": "#/$defs/dateTime", "description": "Projection generation time; freshness is judged on it (24 h, issue #21 question 6)." },
+    "version": { "description": "Legacy; read only as a fallback for projection_version." },
+    "tenant": { "description": "Ignored by the client: never displayed, never kept in the cleaned snapshot." },
+    "briefing": { "$ref": "#/$defs/briefing" },
+    "goals": { "type": "array", "items": { "$ref": "#/$defs/goal" } },
+    "decisions": { "type": "array", "items": { "$ref": "#/$defs/decision" } },
+    "team": { "$ref": "#/$defs/team" },
+    "overview": { "$ref": "#/$defs/overview" },
+    "fleet_health": { "$ref": "#/$defs/fleetHealth" },
+    "pending_approvals": { "$ref": "#/$defs/pendingApprovals" },
+    "queue": { "$ref": "#/$defs/queue" }
+  },
+  "$defs": {
+    "dateTime": { "type": "string", "format": "date-time" },
+    "nullableDateTime": { "type": ["string", "null"], "format": "date-time" },
+    "nullableString": { "type": ["string", "null"] },
+    "count": { "type": "integer", "minimum": 0 },
+    "briefing": {
+      "type": "object",
+      "properties": {
+        "kind": { "$ref": "#/$defs/nullableString" },
+        "date": { "$ref": "#/$defs/nullableString" },
+        "display_title": { "$ref": "#/$defs/nullableString" },
+        "summary": { "$ref": "#/$defs/nullableString" }
+      }
+    },
+    "goal": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "display_title": { "$ref": "#/$defs/nullableString" }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "date": { "$ref": "#/$defs/nullableString" },
+        "display_title": { "$ref": "#/$defs/nullableString" },
+        "subject_ref": { "$ref": "#/$defs/nullableString" }
+      }
+    },
+    "team": {
+      "type": "object",
+      "properties": {
+        "workspaces": { "$ref": "#/$defs/count" },
+        "goals": { "$ref": "#/$defs/count" }
+      }
+    },
+    "activity": {
+      "type": "object",
+      "properties": {
+        "type": { "$ref": "#/$defs/nullableString" },
+        "date": { "$ref": "#/$defs/nullableString" },
+        "display_title": { "$ref": "#/$defs/nullableString" },
+        "subject_ref": { "$ref": "#/$defs/nullableString" }
+      }
+    },
+    "overview": {
+      "type": "object",
+      "properties": {
+        "goals_total": { "$ref": "#/$defs/count" },
+        "goals_named": { "$ref": "#/$defs/count" },
+        "goals_activity_buckets": {
+          "type": "object",
+          "properties": {
+            "updated_last_24h": { "$ref": "#/$defs/count" },
+            "updated_last_7d": { "$ref": "#/$defs/count" },
+            "older": { "$ref": "#/$defs/count" }
+          }
+        },
+        "recent_activity": { "type": "array", "items": { "$ref": "#/$defs/activity" } },
+        "staleness": { "$ref": "#/$defs/count", "description": "v2 name. `staleness_days` is not a contract field (renaming is a v3 item, ADR-0001 §7)." }
+      }
+    },
+    "fleetHealth": {
+      "type": "object",
+      "properties": {
+        "healthy": { "$ref": "#/$defs/count" },
+        "degraded": { "$ref": "#/$defs/count" },
+        "down": { "$ref": "#/$defs/count" }
+      }
+    },
+    "pendingApprovals": {
+      "description": "Legacy approvals section; not read when `queue` is present.",
+      "type": "object",
+      "properties": {
+        "status": { "enum": ["connected", "not_connected"] },
+        "count": { "$ref": "#/$defs/count" },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "$ref": "#/$defs/nullableString" },
+              "display_title": { "$ref": "#/$defs/nullableString" },
+              "proposer": { "$ref": "#/$defs/nullableString" },
+              "effect": { "$ref": "#/$defs/nullableString" },
+              "subject_ref": { "$ref": "#/$defs/nullableString" }
+            }
+          }
+        }
+      }
+    },
+    "queue": {
+      "description": "Queue-mirror projection (Helm slice 3).",
+      "type": "object",
+      "required": ["status", "items"],
+      "properties": {
+        "status": { "enum": ["connected", "not_connected"] },
+        "count": { "$ref": "#/$defs/count" },
+        "dropped": { "$ref": "#/$defs/count" },
+        "title_map": { "type": "object", "additionalProperties": { "type": "string" } },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/queueItem" } }
+      }
+    },
+    "queueItem": {
+      "type": "object",
+      "required": ["queue_id", "kind", "state"],
+      "properties": {
+        "queue_id": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "minLength": 1 },
+        "state": { "enum": ["pending", "approved", "rejected", "executed", "unknown"], "description": "K2 closed enum; not extended (issue #21 question 2). `executed` is derived by the server-side projection (question 3)." },
+        "actor": { "$ref": "#/$defs/nullableString", "description": "Requester." },
+        "requested_at": { "$ref": "#/$defs/nullableDateTime" },
+        "subject_ref": { "$ref": "#/$defs/nullableString" },
+        "effect": { "description": "Text, structured object/array, or null; rendered verbatim unless its field shape is recognised." },
+        "content_hash": { "type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$", "description": "Binding hash; one rule for snapshot and realtime layer (issue #21 question 4)." },
+        "decided_at": { "$ref": "#/$defs/nullableDateTime" },
+        "decided_via": { "$ref": "#/$defs/nullableString", "description": "Decision channel." },
+        "decided_by": { "$ref": "#/$defs/nullableString", "description": "Decision maker; optional v2 addition (issue #21 question 5)." },
+        "decision_note": { "$ref": "#/$defs/nullableString" },
+        "display_title": { "$ref": "#/$defs/nullableString", "description": "title_map value only; the raw title is never projected." }
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "note": "Pinned contract verdicts for tests/fixtures (checked by tests/contract-check.js). Fixtures are client probes; an out-of-contract fixture must say why. Any difference from this list, in either direction, fails the run.",
+  "fixtures": {
+    "snapshot.queue.json": {
+      "role": "40-item queue mirror; cq37 is a deliberate pending item without content_hash (client must flag it)",
+      "violations": ["HASH_MISSING@$.queue.items[36].content_hash"]
+    },
+    "snapshot.queue-empty.json": { "role": "connected, empty queue", "violations": [] },
+    "snapshot.queue-not-connected.json": { "role": "queue not connected", "violations": [] },
+    "snapshot.queue-edge.json": {
+      "role": "edge probe: raw title (cqe05), out-of-enum state (cqe07), dangling subject_ref (cqe08), missing hash (cqe09), missing queue_id, duplicate queue_id",
+      "violations": [
+        "EXPOSURE_RAW_TITLE@$.queue.items[4].title",
+        "SCHEMA_ENUM@$.queue.items[6].state",
+        "REF_DANGLING@$.queue.items[7].subject_ref",
+        "HASH_MISSING@$.queue.items[8].content_hash",
+        "SCHEMA_REQUIRED@$.queue.items[9].queue_id",
+        "HASH_MISSING@$.queue.items[9].content_hash",
+        "ID_DUPLICATE@$.queue.items[10].queue_id"
+      ]
+    },
+    "snapshot.sample.json": {
+      "role": "legacy pre-v2 snapshot (version 1, camelCase generatedAt); kept for the legacy read path",
+      "violations": ["SCHEMA_REQUIRED@$.generated_at", "SCHEMA_REQUIRED@$.generation_seq", "SCHEMA_REQUIRED@$.projection_version"]
+    },
+    "snapshot.vnext.json": { "role": "v2 without generated_at (exercises the never-Live path)", "violations": ["SCHEMA_REQUIRED@$.generated_at"] },
+    "snapshot.vnext-approvals.json": { "role": "v2 legacy approvals section, without generated_at", "violations": ["SCHEMA_REQUIRED@$.generated_at"] },
+    "snapshot.vnext-desktop.json": { "role": "v2 desktop wall fixture (extra non-contract fields are allowed and ignored)", "violations": [] }
+  }
+}
