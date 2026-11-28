@@ -102,3 +102,11 @@
 - Data age is shown in the Wall situation panel, the phone overview note and the Me view snapshot status ("数据生成于 8 天前" / "数据生成时间未知…"). The inbox's not-live warning names the data age when the data is what is old; decisions taken on stale data record `snapshot_state: "stale"` in their basis.
 - Tests: `tests/live/inbox.live.js` serves fixtures that carry `generated_at` with a current one (fixtures are static files with fixed dates) and adds a freshness flow (fresh, 23 h, 8 days, missing, unparsable, future, legacy camelCase). 317 assertions at 390 and 1440, 0 failures, zero PAGEERROR; `node tests/node-check.js` PASS.
 - Service worker: helm-shell-v13 in both sw.js (SW_VERSION = 'v13') and index.html (SHELL_VERSION = 'v13').
+
+## Content Security Policy (2026-11-28)
+
+- Closes the CSP half of #18 SEC-A6, landed on its own as recommended in #23 (question 4) and ADR-0002 §4.4 (proposed in #24). `index.html` now carries a meta CSP: `default-src 'none'`; scripts only by the SHA-256 hash of the single inline script (no `unsafe-inline`, no `unsafe-eval`); `style-src 'unsafe-inline'` (the page uses inline styles and style attributes); `img-src 'self' data:`; `connect-src 'self' https:` (the snapshot URL is user-chosen, https only, as F-1 requires); `manifest-src`/`worker-src 'self'`; `base-uri`, `form-action`, `object-src 'none'`.
+- Not covered by a meta CSP (needs response headers, which GitHub Pages does not let us set): `frame-ancestors`, `X-Content-Type-Options`, `Referrer-Policy`. When the realtime channel is connected, `connect-src` narrows to `'self'` plus the projection outlet (ADR-0002).
+- Every edit to the inline script changes its hash: `node tests/node-check.js` now fails when the CSP hash is stale, and `node tests/node-check.js --fix-csp` rewrites it.
+- `tests/live/inbox.live.js` records every `securitypolicyviolation` and asserts zero across the main flow, plus a CSP flow: hash-only script-src, the https snapshot loads, the service worker registers and activates, an injected inline script does not run, and a non-https fetch is refused. 335 assertions at 390 and 1440, 0 failures, zero PAGEERROR.
+- Service worker: helm-shell-v14 in both sw.js (SW_VERSION = 'v14') and index.html (SHELL_VERSION = 'v14').

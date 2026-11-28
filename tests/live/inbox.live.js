@@ -50,6 +50,8 @@ async function open(browser, w, h, fixture, opts) {
   page.on('console', m => { if (m.type() === 'error') errs.push('CONSOLE ' + m.text()); });
   page.on('request', r => reqs.push(r.method() + ' ' + r.url()));
   await page.route(FIX + '/**', async r => { const u = new URL(r.request().url()); const f = path.join(REPO, decodeURIComponent(u.pathname)); if (!f.startsWith(REPO + '/tests/fixtures/') || !fs.existsSync(f)) return r.fulfill({ status: 404, body: 'not found' }); await r.fulfill({ contentType: 'application/json', body: JSON.stringify(freshen(JSON.parse(fs.readFileSync(f, 'utf8')), opts.generatedAt)) }); });
+  // Record every CSP violation the page reports (the page ships a meta CSP; see tests/node-check.js).
+  await page.addInitScript(() => { window.__cspv = []; document.addEventListener('securitypolicyviolation', e => window.__cspv.push(e.violatedDirective + ' ' + e.blockedURI)); });
   if (opts.route) await opts.route(page);
   await page.addInitScript((u) => { if (!localStorage.getItem('__seeded')) { localStorage.setItem('__seeded', '1'); if (u) localStorage.setItem('fit.snapshot.url', u); } }, fixture ? FIX + '/tests/fixtures/' + fixture : '');
   await page.goto(BASE + '/index.html');
@@ -253,6 +255,7 @@ async function mainFlow(browser, w, h) {
   const offOrigin = reqs.filter(r => !r.includes(BASE) && !r.includes(FIX + '/tests/fixtures/'));
   ok(nonGet.length === 0, 'no non-GET request was made', nonGet);
   ok(offOrigin.length === 0, 'no off-origin request was made', offOrigin);
+  ok((await page.evaluate(() => window.__cspv)).length === 0, `zero CSP violations across the main flow @ ${w}`, await page.evaluate(() => window.__cspv));
   ok(errs.length === 0, `zero PAGEERROR / console errors @ ${w}`, errs);
   await ctx.close();
 }
@@ -370,6 +373,28 @@ async function freshnessFlow(browser, w, h) {
   r = await open(browser, w, h, 'snapshot.sample.json');
   ok((await top(r.page)).startsWith('已连接'), 'legacy camelCase generatedAt is read (sample fixture)', await top(r.page));
   ok(r.errs.length === 0, 'zero page errors (sample)', r.errs); await r.ctx.close();
+}
+
+async function cspFlow(browser, w, h) {
+  console.log(`\n== content security policy @ ${w}x${h}`);
+  const r = await open(browser, w, h, 'snapshot.queue.json');
+  const p = r.page;
+  const csp = await p.evaluate(() => { const m = document.querySelector('meta[http-equiv="Content-Security-Policy"]'); return m ? m.content : null; });
+  ok(!!csp && /script-src 'sha256-[A-Za-z0-9+/=]+'/.test(csp) && !/unsafe-eval/.test(csp) && !/script-src[^;]*unsafe-inline/.test(csp), 'meta CSP present; scripts allowed by hash only', csp);
+  ok((await p.locator('.inbox-row').count()) > 0 && (await p.locator('#topSignalText').textContent()).startsWith('已连接'), 'app runs and loads the https snapshot under the CSP');
+  ok((await p.evaluate(() => window.__cspv)).length === 0, 'no violation during normal load', await p.evaluate(() => window.__cspv));
+  const sw = await p.evaluate(() => Promise.race([navigator.serviceWorker.ready.then(r => r.active ? r.active.scriptURL : 'no-active'), new Promise(res => setTimeout(() => res('timeout'), 5000))]));
+  ok(typeof sw === 'string' && sw.endsWith('/sw.js'), 'the service worker registers and activates under the CSP (worker-src)', sw);
+  const injected = await p.evaluate(() => { const s = document.createElement('script'); s.textContent = 'window.__cspProbe = 1'; document.head.appendChild(s); return window.__cspProbe; });
+  ok(injected === undefined, 'an injected inline script does not run');
+  const httpFetch = await p.evaluate(() => fetch('http://127.0.0.2:9/x').then(() => 'loaded', () => 'blocked'));
+  ok(httpFetch === 'blocked', 'a non-https, non-self fetch is blocked');
+  await p.waitForTimeout(200);
+  const v = await p.evaluate(() => window.__cspv);
+  ok(v.some(x => x.startsWith('script-src')) && v.some(x => x.startsWith('connect-src')), 'both probes were refused by the CSP (script-src, connect-src)', v);
+  const real = r.errs.filter(e => !/Content Security Policy|Failed to fetch/.test(e));
+  ok(real.length === 0, 'no other page errors', real);
+  await r.ctx.close();
 }
 
 async function cachedFlow(browser, w, h) {
@@ -499,6 +524,7 @@ async function stateFixtures(browser, w, h) {
     await sealFlow(browser, w, h);
     await cachedFlow(browser, w, h);
     await freshnessFlow(browser, w, h);
+    await cspFlow(browser, w, h);
     await edgeFlow(browser, w, h);
     await stateFixtures(browser, w, h);
   }
